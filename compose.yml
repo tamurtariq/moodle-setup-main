@@ -1,0 +1,61 @@
+services:
+  mariadb:
+    image: mariadb:10.6
+    container_name: moodle-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: moodle
+      MYSQL_USER: moodleuser
+      MYSQL_PASSWORD: moodlepass
+    volumes:
+      - moodle-db-data:/var/lib/mysql
+    networks:
+      - moodle-net
+
+  redis:
+    image: redis:latest
+    container_name: moodle-redis
+    restart: always
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - moodle-redis-data:/data
+    networks:
+      - moodle-net
+
+  moodle:
+    image: bitnami/moodle:latest
+    container_name: moodle-app
+    restart: always
+    environment:
+      - MOODLE_DATABASE_TYPE=mariadb
+      - MOODLE_DATABASE_HOST=mariadb
+      - MOODLE_DATABASE_PORT_NUMBER=3306
+      - MOODLE_DATABASE_NAME=moodle
+      - MOODLE_DATABASE_USER=moodleuser
+      - MOODLE_DATABASE_PASSWORD=moodlepass
+      - MOODLE_USERNAME=admin
+      - MOODLE_PASSWORD=adminpass
+      - MOODLE_REDIS_HOST=redis
+      - MOODLE_REDIS_PORT=6379
+    volumes:
+      - moodle-data:/bitnami/moodle
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+    depends_on:
+      - mariadb
+      - redis
+    networks:
+      - moodle-net
+
+volumes:
+  moodle-db-data:
+  moodle-data:
+  moodle-redis-data:
+
+networks:
+  moodle-net:
+    ipam:
+      config:
+        - subnet: 172.33.0.0/16
